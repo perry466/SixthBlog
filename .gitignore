@@ -1,0 +1,53 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+*.so
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# ===== Django =====
+*.log
+*.sqlite3
+media/
+staticfiles/
+
+# ===== IDE & Editor =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Node / Frontend =====
+node_modules/
+frontend/dist/
+
+# ===== Claude / AI =====
+.claude/
+
+# ===== Sensitive =====
+.env
+.env.local
+.env.*.local
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== Misc =====
+*.bak
+*.tmp
+history/
+提示词
+方案.txt

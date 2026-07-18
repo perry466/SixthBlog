@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  db:
+    image: mysql:8.0
+    container_name: sixthblog-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_here
+      MYSQL_DATABASE: sixth_db
+      MYSQL_USER: Sixth_user
+      MYSQL_PASSWORD: perry139140@
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - sixthblog-network
+
+  # 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: sixthblog-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=sixth_db
+      - DB_USER=Sixth_user
+      - DB_PASSWORD=perry139140@
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    depends_on:
+      - db
+    networks:
+      - sixthblog-network
+
+  # 前端服务
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: sixthblog-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - sixthblog-network
+
+volumes:
+  mysql_data:
+  media_data:
+  static_data:
+
+networks:
+  sixthblog-network:
+    driver: bridge
