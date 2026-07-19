@@ -38,9 +38,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-perry139140@}
       - DB_HOST=db
       - DB_PORT=3306
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
       - CORS_ORIGINS=${CORS_ORIGINS:-}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-}
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
