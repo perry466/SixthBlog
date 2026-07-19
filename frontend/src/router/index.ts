@@ -139,7 +139,7 @@ const router = createRouter({
 
 // 全局路由守卫：检查系统初始化状态
 let setupChecked = false;
-let isInitialized = true;
+let isInitialized = false;
 
 router.beforeEach(async (to, _from, next) => {
   // Setup 页面始终可访问
@@ -153,8 +153,8 @@ router.beforeEach(async (to, _from, next) => {
       const res = await getSetupStatus() as any;
       isInitialized = res.initialized;
     } catch {
-      // API 不可达，假设已初始化（避免阻塞）
-      isInitialized = true;
+      // API 暂不可达，先跳转 setup 页面（setup 页自带连接检测和重试）
+      isInitialized = false;
     }
     setupChecked = true;
   }
