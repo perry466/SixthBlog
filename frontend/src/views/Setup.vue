@@ -11,7 +11,7 @@
           <div class="check-item"><span class="check-icon">👤</span> 创建管理员账号</div>
           <div class="check-item"><span class="check-icon">⚙️</span> 设置站点信息</div>
         </div>
-        <button class="btn-primary" @click="step = 2">开始配置</button>
+        <button class="btn-primary" @click="goStep2">开始配置</button>
       </div>
 
       <!-- Step 2: Database Check -->
@@ -132,24 +132,9 @@ const errors = reactive({
   site_title: '',
 })
 
-onMounted(async () => {
-  if (step.value === 2) {
-    await testDb()
-  }
+onMounted(() => {
+  // component mounted, nothing to do
 })
-
-// Switch to step 2 triggers DB check
-const originalStep1 = step
-// We need to watch step changes for DB check
-const stepChange = async (newStep: number) => {
-  step.value = newStep
-  if (newStep === 2) {
-    checking.value = true
-    dbOk.value = false
-    dbError.value = ''
-    await testDb()
-  }
-}
 
 async function testDb() {
   checking.value = true
@@ -165,6 +150,11 @@ async function testDb() {
   } finally {
     checking.value = false
   }
+}
+
+function goStep2() {
+  step.value = 2
+  testDb()
 }
 
 function validateAdmin(): boolean {
