@@ -3,6 +3,13 @@
 import os
 import sys
 
+# PyMySQL 兼容 MySQLdb（Docker 环境使用）
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 
 def main():
     """Run administrative tasks."""

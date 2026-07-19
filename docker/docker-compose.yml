@@ -5,16 +5,22 @@ services:
   db:
     image: mysql:8.0
     container_name: sixthblog-db
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password_here
-      MYSQL_DATABASE: sixth_db
-      MYSQL_USER: Sixth_user
-      MYSQL_PASSWORD: perry139140@
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_here}
+      MYSQL_DATABASE: ${DB_NAME:-sixth_db}
+      MYSQL_USER: ${DB_USER:-Sixth_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-perry139140@}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - sixthblog-network
 
@@ -24,27 +30,35 @@ services:
       context: .
       dockerfile: docker/Dockerfile.backend
     container_name: sixthblog-backend
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
     environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-django-insecure-default-change-me}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-false}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=${DB_NAME:-sixth_db}
+      - DB_USER=${DB_USER:-Sixth_user}
+      - DB_PASSWORD=${DB_PASSWORD:-perry139140@}
       - DB_HOST=db
-      - DB_NAME=sixth_db
-      - DB_USER=Sixth_user
-      - DB_PASSWORD=perry139140@
+      - DB_PORT=3306
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost}
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - sixthblog-network
 
-  # 前端服务
+  # 前端服务 (Nginx)
   frontend:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
     container_name: sixthblog-frontend
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:

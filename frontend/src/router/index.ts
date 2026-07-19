@@ -1,9 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { getSetupStatus } from "../api/setup";
 
 const router = createRouter({
     history: createWebHistory(),
 
     routes: [
+        // ===== 安装向导 =====
+        {
+            path: "/setup",
+            name: "Setup",
+            component: () => import("../views/Setup.vue"),
+        },
+
         // ===== 前台路由 =====
         { path: "/", redirect: "/home" },
         {
@@ -127,6 +135,35 @@ const router = createRouter({
             component: () => import("../views/NotFound.vue"),
         },
     ],
+});
+
+// 全局路由守卫：检查系统初始化状态
+let setupChecked = false;
+let isInitialized = true;
+
+router.beforeEach(async (to, _from, next) => {
+  // Setup 页面始终可访问
+  if (to.path === '/setup') {
+    return next();
+  }
+
+  // 仅在首次访问时检查初始化状态
+  if (!setupChecked) {
+    try {
+      const res = await getSetupStatus() as any;
+      isInitialized = res.initialized;
+    } catch {
+      // API 不可达，假设已初始化（避免阻塞）
+      isInitialized = true;
+    }
+    setupChecked = true;
+  }
+
+  if (!isInitialized) {
+    return next('/setup');
+  }
+
+  next();
 });
 
 export default router;
