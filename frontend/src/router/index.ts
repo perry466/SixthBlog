@@ -149,12 +149,22 @@ router.beforeEach(async (to, _from, next) => {
 
   // 仅在首次访问时检查初始化状态
   if (!setupChecked) {
-    try {
-      const res = await getSetupStatus() as any;
-      isInitialized = res.initialized;
-    } catch {
-      // API 暂不可达，先跳转 setup 页面（setup 页自带连接检测和重试）
-      isInitialized = false;
+    let retries = 1;
+    while (retries >= 0) {
+      try {
+        const res = await getSetupStatus() as any;
+        isInitialized = res.initialized;
+        break;
+      } catch (e) {
+        console.error('初始化检查失败:', e)
+        if (retries > 0) {
+          retries--;
+          // 等一小段时间再重试
+          await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+        isInitialized = false;
+      }
     }
     setupChecked = true;
   }

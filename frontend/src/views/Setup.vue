@@ -101,10 +101,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { checkDatabase, install } from '../api/setup'
-
-const router = useRouter()
 
 const step = ref(1)
 const checking = ref(true)
@@ -210,9 +207,7 @@ async function doInstall() {
 }
 
 function goHome() {
-  router.push('/home').then(() => {
-    window.location.reload()
-  })
+  window.location.href = '/home'
 }
 </script>
 
