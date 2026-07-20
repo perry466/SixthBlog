@@ -36,21 +36,39 @@ class CheckDatabaseView(generics.GenericAPIView):
 
 
 class InstallView(generics.GenericAPIView):
-    """执行首次安装：创建超级管理员 + 初始化站点配置"""
+    """执行首次安装：创建超级管理员 + 初始化站点配置（幂等，可多次调用）"""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # 防止重复安装
-        if User.objects.filter(is_superuser=True).exists():
-            return Response({'error': '系统已经安装过了'}, status=status.HTTP_400_BAD_REQUEST)
+        has_admin = User.objects.filter(is_superuser=True).exists()
+        has_config = SiteConfig.objects.exists()
 
-        username = request.data.get('username', '').strip()
-        email = request.data.get('email', '').strip()
-        password = request.data.get('password', '')
+        # 已完全安装 → 直接返回成功，前端跳转首页
+        if has_admin and has_config:
+            return Response({
+                'message': '系统已就绪，即将跳转到首页',
+                'already_installed': True,
+            })
+
         site_title = request.data.get('site_title', 'SixthBlog').strip()
         site_description = request.data.get('site_description', '').strip()
 
-        # 参数校验
+        # 有管理员但缺配置 → 补齐配置
+        if has_admin and not has_config:
+            config = SiteConfig.objects.create(
+                site_title=site_title,
+                site_description=site_description,
+            )
+            return Response({
+                'message': '站点配置已补全，欢迎使用 SixthBlog',
+                'site_title': config.site_title,
+            })
+
+        # 首次安装：创建管理员 + 配置
+        username = request.data.get('username', '').strip()
+        email = request.data.get('email', '').strip()
+        password = request.data.get('password', '')
+
         if not username or len(username) < 3:
             return Response({'error': '用户名至少需要 3 个字符'}, status=status.HTTP_400_BAD_REQUEST)
         if not password or len(password) < 6:
@@ -60,7 +78,6 @@ class InstallView(generics.GenericAPIView):
         if not site_title:
             return Response({'error': '请输入网站标题'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 创建超级管理员
         try:
             user = User.objects.create_superuser(
                 username=username,
@@ -70,17 +87,10 @@ class InstallView(generics.GenericAPIView):
         except Exception as e:
             return Response({'error': f'创建管理员失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # 初始化站点配置
-        config, created = SiteConfig.objects.get_or_create(
-            defaults={
-                'site_title': site_title,
-                'site_description': site_description,
-            }
+        config = SiteConfig.objects.create(
+            site_title=site_title,
+            site_description=site_description,
         )
-        if not created and site_title:
-            config.site_title = site_title
-            config.site_description = site_description
-            config.save()
 
         return Response({
             'message': '安装完成！欢迎使用 SixthBlog',
@@ -90,4 +100,4 @@ class InstallView(generics.GenericAPIView):
                 'email': user.email,
             },
             'site_title': config.site_title,
-        }, status=status.HTTP_200_OK)
+        })
