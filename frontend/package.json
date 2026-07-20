@@ -9,6 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@milkdown/kit": "^7.21.3",
+    "@milkdown/plugin-prism": "^7.21.3",
+    "@milkdown/theme-nord": "^7.21.3",
+    "@milkdown/vue": "^7.21.3",
     "axios": "^1.18.1",
     "highlight.js": "^11.11.1",
     "marked": "^18.0.5",

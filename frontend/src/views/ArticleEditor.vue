@@ -40,44 +40,14 @@
       </Transition>
     </div>
 
-    <!-- ===== Markdown 工具栏 (sticky) ===== -->
-    <div class="editor-toolbar">
-      <div class="toolbar-group">
-        <button @click="insertText('**', '**')" title="粗体 (Ctrl+B)"><b>B</b></button>
-        <button @click="insertText('*', '*')" title="斜体 (Ctrl+I)"><i>I</i></button>
-        <button @click="insertText('~~', '~~')" title="删除线"><s>S</s></button>
-      </div>
-      <div class="toolbar-divider"></div>
-      <div class="toolbar-group">
-        <button @click="insertHeading(1)" title="标题1">H1</button>
-        <button @click="insertHeading(2)" title="标题2">H2</button>
-        <button @click="insertHeading(3)" title="标题3">H3</button>
-      </div>
-      <div class="toolbar-divider"></div>
-      <div class="toolbar-group">
-        <button @click="insertText('`', '`')" title="行内代码">&lt;/&gt;</button>
-        <button @click="insertCodeBlock()" title="代码块">{ }</button>
-        <button @click="insertText('- ', '')" title="无序列表">List</button>
-        <button @click="insertText('> ', '')" title="引用">Quote</button>
-        <button @click="insertLink()" title="插入链接">Link</button>
-        <button @click="triggerImageUpload()" title="上传图片">Image</button>
-      </div>
-      <input ref="imageInput" type="file" accept="image/*" hidden @change="handleImageUpload" />
-    </div>
-
     <!-- ===== 主体区域：编辑器 + 右侧面板 ===== -->
     <div class="editor-body">
-      <!-- 左侧：Markdown 编辑区 -->
-      <div class="editor-left">
-        <textarea
-          ref="editorRef"
+      <!-- 左侧：Milkdown WYSIWYG 编辑器 -->
+      <div ref="contentErrorRef" class="editor-left">
+        <MilkdownEditor
           v-model="form.content"
-          :class="['editor-textarea', { 'field-error-input': fieldErrors.content }]"
-          placeholder="开始写作... 支持 Markdown 语法"
-          @paste="handlePaste"
-          @keydown.tab.prevent="insertTab"
-          @input="clearFieldError('content')"
-        ></textarea>
+          @image-uploaded="(url: string) => showToast('图片上传成功')"
+        />
         <Transition name="field-error-fade">
           <span v-if="fieldErrors.content" class="field-error-msg" style="padding:0 24px 12px">{{ fieldErrors.content }}</span>
         </Transition>
@@ -232,8 +202,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getArticleDetail, createArticle, updateArticle, getCategories } from '../api/blog'
-import { uploadImage } from '../api/user'
 import { marked } from 'marked'
+import MilkdownEditor from '../components/MilkdownEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -242,9 +212,8 @@ const userStore = useUserStore()
 const articleId = route.params.id ? Number(route.params.id) : null
 const isEdit = computed(() => !!articleId)
 
-const editorRef = ref<HTMLTextAreaElement | null>(null)
+const contentErrorRef = ref<HTMLDivElement | null>(null)
 const titleInputRef = ref<HTMLInputElement | null>(null)
-const imageInput = ref<HTMLInputElement | null>(null)
 const coverInput = ref<HTMLInputElement | null>(null)
 
 // 表单字段错误记录：fieldName -> errorMessage
@@ -310,89 +279,6 @@ const showToast = (msg: string, type = 'success') => {
   setTimeout(() => { toast.value = '' }, 3000)
 }
 
-// ========== Markdown 编辑工具 ==========
-
-const insertText = (before: string, after: string) => {
-  const el = editorRef.value
-  if (!el) return
-  const start = el.selectionStart
-  const end = el.selectionEnd
-  const selected = form.value.content.substring(start, end)
-  const replacement = before + (selected || 'text') + after
-  form.value.content = form.value.content.substring(0, start) + replacement + form.value.content.substring(end)
-  el.focus()
-  el.setSelectionRange(start + before.length, start + before.length + selected.length)
-}
-
-const insertHeading = (level: number) => {
-  const prefix = '#'.repeat(level) + ' '
-  const el = editorRef.value
-  if (!el) return
-  const start = el.selectionStart
-  const lineStart = form.value.content.lastIndexOf('\n', start - 1) + 1
-  form.value.content = form.value.content.substring(0, lineStart) + prefix + form.value.content.substring(lineStart)
-  el.focus()
-}
-
-const insertCodeBlock = () => {
-  insertText('\n```\n', '\n```\n')
-}
-
-const insertLink = () => {
-  const url = prompt('请输入链接地址:')
-  if (url) insertText('[', `](${url})`)
-}
-
-const insertTab = () => {
-  const el = editorRef.value
-  if (!el) return
-  const start = el.selectionStart
-  form.value.content = form.value.content.substring(0, start) + '  ' + form.value.content.substring(el.selectionEnd)
-  el.setSelectionRange(start + 2, start + 2)
-}
-
-const triggerImageUpload = () => imageInput.value?.click()
-
-const handleImageUpload = async (e: Event) => {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  try {
-    const res = await uploadImage(file) as any
-    const md = `\n![${file.name}](${res.url})\n`
-    const el = editorRef.value
-    const pos = el?.selectionStart ?? form.value.content.length
-    form.value.content = form.value.content.substring(0, pos) + md + form.value.content.substring(pos)
-    showToast('图片上传成功')
-  } catch {
-    showToast('图片上传失败', 'error')
-  }
-  if (imageInput.value) imageInput.value.value = ''
-}
-
-const handlePaste = async (e: ClipboardEvent) => {
-  const items = e.clipboardData?.items
-  if (!items) return
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      e.preventDefault()
-      const file = item.getAsFile()
-      if (file) {
-        try {
-          const res = await uploadImage(file) as any
-          const md = `\n![${file.name}](${res.url})\n`
-          const el = editorRef.value
-          const pos = el?.selectionStart ?? form.value.content.length
-          form.value.content = form.value.content.substring(0, pos) + md + form.value.content.substring(pos)
-          showToast('粘贴图片上传成功')
-        } catch {
-          showToast('粘贴图片上传失败', 'error')
-        }
-      }
-      break
-    }
-  }
-}
-
 // ========== 封面图片 ==========
 
 const triggerCoverUpload = () => coverInput.value?.click()
@@ -423,7 +309,7 @@ const clearCover = () => {
 // 字段名到滚动的 ref / selector 映射
 const FIELD_SCROLL_MAP: Record<string, { getEl: () => HTMLElement | null; switchTab?: boolean }> = {
   title:        { getEl: () => titleInputRef.value },
-  content:      { getEl: () => editorRef.value },
+  content:      { getEl: () => contentErrorRef.value },
   tags:         { getEl: () => document.querySelector('.editor-right .blog-input') as HTMLElement, switchTab: true },
   category:     { getEl: () => document.querySelector('.editor-right select') as HTMLElement, switchTab: true },
   article_type: { getEl: () => document.querySelector('.editor-right select') as HTMLElement, switchTab: true },

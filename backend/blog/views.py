@@ -416,9 +416,9 @@ def upload_image(request):
     # 验证文件类型
     if not image.content_type.startswith('image/'):
         return Response({'error': '只允许上传图片文件'}, status=400)
-    # 限制文件大小（5MB）
-    if image.size > 5 * 1024 * 1024:
-        return Response({'error': '图片大小不能超过5MB'}, status=400)
+    # 限制文件大小（20MB）
+    if image.size > 20 * 1024 * 1024:
+        return Response({'error': '图片大小不能超过20MB'}, status=400)
     # 保存到 articles/images/ 目录
     from django.core.files.storage import default_storage
     from django.conf import settings
