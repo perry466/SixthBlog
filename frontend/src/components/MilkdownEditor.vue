@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/vue'
-import { Editor, defaultValueCtx, rootCtx, commandsCtx, editorViewCtx } from '@milkdown/kit/core'
+import { Editor, defaultValueCtx, rootCtx, commandsCtx, editorViewCtx, editorStateCtx } from '@milkdown/kit/core'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
 import { gfm } from '@milkdown/kit/preset/gfm'
 import { history } from '@milkdown/kit/plugin/history'
@@ -116,13 +116,22 @@ function handleLinkClick() {
   const text = prompt('请输入链接文本:', url) || url
   const editor = getEditor()
   if (!editor) return
-  const md = `[${text}](${url})`
   editor.action((ctx) => {
     const view = ctx.get(editorViewCtx)
-    if (view) {
-      const { state, dispatch } = view
-      const tr = state.tr.insertText(md, state.selection.from, state.selection.to)
-      dispatch(tr)
+    const state = ctx.get(editorStateCtx)
+    if (!view || !state) return
+    const { from, to } = state.selection
+    const schema = state.schema
+    const linkMark = schema.marks.link.create({ href: url })
+    if (from !== to) {
+      // 有选中文本：给选中文本加链接
+      const tr = state.tr.addMark(from, to, linkMark)
+      view.dispatch(tr)
+    } else {
+      // 无选中：插入链接文本
+      const node = schema.text(text, [linkMark])
+      const tr = state.tr.insert(from, node)
+      view.dispatch(tr)
     }
   })
 }
@@ -143,14 +152,21 @@ async function handleToolbarImageUpload(e: Event) {
 
     const editor = getEditor()
     if (!editor) return
-    const md = `\n![${file.name}](${res.url})\n`
     editor.action((ctx) => {
       const view = ctx.get(editorViewCtx)
-      if (view) {
-        const { state, dispatch } = view
-        const tr = state.tr.insertText(md, state.selection.from, state.selection.to)
-        dispatch(tr)
-      }
+      const state = ctx.get(editorStateCtx)
+      if (!view || !state) return
+
+      // 创建 ProseMirror image node（不是 Markdown 文本）
+      const schema = state.schema
+      const imageNode = schema.nodes.image.create({
+        src: res.url,
+        alt: file.name,
+        title: file.name,
+      })
+      // 在光标位置插入图片节点
+      const tr = state.tr.replaceSelectionWith(imageNode)
+      view.dispatch(tr)
     })
   } catch {
     // 父组件处理错误
