@@ -46,7 +46,7 @@
       <div ref="contentErrorRef" class="editor-left">
         <MilkdownEditor
           v-model="form.content"
-          @image-uploaded="(url: string) => showToast('图片上传成功')"
+          @image-uploaded="showToast('图片上传成功')"
         />
         <Transition name="field-error-fade">
           <span v-if="fieldErrors.content" class="field-error-msg" style="padding:0 24px 12px">{{ fieldErrors.content }}</span>

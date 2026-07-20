@@ -79,6 +79,10 @@ const { loading, get: getEditor } = useEditor((container: HTMLDivElement) => {
     .config((ctx) => {
       ctx.set(rootCtx, container)
       ctx.set(defaultValueCtx, props.modelValue)
+      // 配置 markdown 变更监听（正确 API：通过 ctx.get(listenerCtx)）
+      ctx.get(listenerCtx).markdownUpdated((_ctx: any, markdown: string) => {
+        emit('update:modelValue', markdown)
+      })
     })
     .use(commonmark)
     .use(gfm)
@@ -87,13 +91,7 @@ const { loading, get: getEditor } = useEditor((container: HTMLDivElement) => {
     .use(cursor)
     .use(indent)
     .use(prism)
-    .use(
-      listener.configure(listenerCtx, {
-        markdownUpdated: (_ctx: any, markdown: string) => {
-          emit('update:modelValue', markdown)
-        },
-      })
-    )
+    .use(listener)
     .create()
 })
 
