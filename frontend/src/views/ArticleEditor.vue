@@ -545,12 +545,6 @@ onMounted(async () => {
       router.push('/sixth-admin/articles')
       return
     }
-  } else {
-    // 新建模式：尝试恢复本地草稿
-    const restored = restoreDraft()
-    if (restored) {
-      showToast('已恢复本地草稿')
-    }
   }
 
   // 启动自动保存
@@ -565,6 +559,9 @@ onUnmounted(() => {
   if (autoSaveTimer) clearInterval(autoSaveTimer)
   document.removeEventListener('keydown', handleGlobalKeydown)
   window.removeEventListener('beforeunload', handleBeforeUnload)
+
+  // 离开页面时清除未保存的草稿，避免下次进入时意外恢复
+  clearDraft()
 
   // 释放 blob URL
   if (coverPreview.value && coverPreview.value.startsWith('blob:')) {
