@@ -290,6 +290,7 @@ onMounted(() => {
 .milkdown-wrapper :deep(.milkdown) {
   flex: 1;
   overflow-y: auto;
+  background: var(--bg-card);
 }
 
 .milkdown-wrapper :deep(.editor) {
@@ -305,6 +306,11 @@ onMounted(() => {
 .milkdown-wrapper :deep(.ProseMirror) {
   outline: none;
   min-height: 300px;
+  caret-color: var(--text-h);
+}
+
+.milkdown-wrapper :deep(.ProseMirror:focus) {
+  outline: none;
 }
 
 .milkdown-wrapper :deep(.ProseMirror) > * + * {
