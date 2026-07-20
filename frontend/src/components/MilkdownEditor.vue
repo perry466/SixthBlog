@@ -58,6 +58,8 @@ import { cursor } from '@milkdown/kit/plugin/cursor'
 import { indent } from '@milkdown/kit/plugin/indent'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { prism } from '@milkdown/plugin-prism'
+import { nord } from '@milkdown/theme-nord'
+import '@milkdown/theme-nord/style.css'
 import { replaceAll } from '@milkdown/utils'
 import { uploadImage } from '../api/user'
 
@@ -91,6 +93,7 @@ const { loading, get: getEditor } = useEditor((container: HTMLDivElement) => {
     .use(cursor)
     .use(indent)
     .use(prism)
+    .use(nord)
     .use(listener)
     .create()
 })
