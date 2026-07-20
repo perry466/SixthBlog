@@ -211,13 +211,13 @@ class SiteConfigManageView(generics.RetrieveUpdateAPIView):
         # 同步 about_content → 关于页面 Article
         about_content = self.request.data.get('about_content', None)
         if about_content is not None:
-            from django.utils.text import slugify
             article, created = Article.objects.get_or_create(
                 article_type='about',
                 defaults={
                     'title': '关于',
                     'slug': 'about',
                     'content': about_content,
+                    'author': self.request.user,
                     'status': 'published',
                     'summary': about_content[:200] if about_content else '',
                 }
