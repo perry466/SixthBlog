@@ -113,8 +113,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { getMediaList, uploadMedia, deleteMedia } from '../api/blog'
-import type { MediaItem } from '../types'
+import { getMediaList, uploadMedia, deleteMedia } from '../../api/blog'
+import type { MediaItem } from '../../types'
 
 const uploadInput = ref<HTMLInputElement | null>(null)
 const items = ref<MediaItem[]>([])
