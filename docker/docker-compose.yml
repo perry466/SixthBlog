@@ -8,7 +8,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_here}
       MYSQL_DATABASE: ${DB_NAME:-sixth_db}
       MYSQL_USER: ${DB_USER:-Sixth_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-perry139140@}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me_user}
     ports:
       - "3306:3306"
     volumes:
@@ -35,7 +35,7 @@ services:
       - DB_ENGINE=django.db.backends.mysql
       - DB_NAME=${DB_NAME:-sixth_db}
       - DB_USER=${DB_USER:-Sixth_user}
-      - DB_PASSWORD=${DB_PASSWORD:-perry139140@}
+      - DB_PASSWORD=${DB_PASSWORD:-change_me_user}
       - DB_HOST=db
       - DB_PORT=3306
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
