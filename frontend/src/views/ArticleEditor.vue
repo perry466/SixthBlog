@@ -44,7 +44,10 @@
     <div class="editor-body">
       <!-- 左侧：Milkdown WYSIWYG 编辑器 -->
       <div ref="contentErrorRef" class="editor-left">
+        <!-- 编辑模式下等文章数据加载完再挂载编辑器，确保初始内容正确同步 -->
+        <div v-if="!contentReady" class="editor-loading">加载编辑器中...</div>
         <MilkdownEditor
+          v-if="contentReady"
           v-model="form.content"
           @image-uploaded="showToast('图片上传成功')"
         />
@@ -107,7 +110,7 @@
               type="text"
               placeholder="多个标签用逗号分隔，如 Vue, Python"
               :class="['blog-input', { 'field-error-input': fieldErrors.tags }]"
-              @input="clearFieldError('tags')"
+              @change="clearFieldError('tags')"
             />
             <Transition name="field-error-fade">
               <span v-if="fieldErrors.tags" class="field-error-msg">{{ fieldErrors.tags }}</span>
@@ -227,6 +230,9 @@ const isEdit = computed(() => !!articleId)
 const contentErrorRef = ref<HTMLDivElement | null>(null)
 const titleInputRef = ref<HTMLInputElement | null>(null)
 const coverInput = ref<HTMLInputElement | null>(null)
+
+// 编辑模式下等数据加载完再挂载编辑器，确保初始内容正确同步
+const contentReady = ref(!isEdit.value)
 
 // 表单字段错误记录：fieldName -> errorMessage
 const fieldErrors = ref<Record<string, string>>({})
@@ -568,6 +574,8 @@ onMounted(async () => {
       form.value.seo_description = article.seo_description || ''
       if (article.cover_image) coverPreview.value = article.cover_image
       tagInput.value = article.tags?.map((t: any) => t.name).join(', ') || ''
+      // 数据加载完毕，挂载编辑器
+      contentReady.value = true
     } catch {
       showToast('文章不存在', 'error')
       router.push('/sixth-admin/articles')
@@ -738,6 +746,15 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden;
   border-right: 1px solid var(--border);
+}
+
+.editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .editor-textarea {
