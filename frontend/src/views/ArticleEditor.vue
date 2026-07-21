@@ -105,13 +105,31 @@
 
           <div class="setting-group">
             <label class="setting-label">标签</label>
-            <input
-              v-model="tagInput"
-              type="text"
-              placeholder="多个标签用逗号分隔，如 Vue, Python"
-              :class="['blog-input', { 'field-error-input': fieldErrors.tags }]"
-              @change="clearFieldError('tags')"
-            />
+            <div
+              ref="tagWrapRef"
+              :class="['tag-input-wrap', { 'field-error-input': fieldErrors.tags }]"
+              @click="focusTagInput"
+            >
+              <span v-for="(tag, idx) in tags" :key="idx" class="tag-chip">
+                {{ tag }}
+                <button type="button" class="tag-chip-remove" @click.stop="removeTag(idx)" title="移除标签">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </span>
+              <input
+                ref="tagInputRef"
+                v-model="tagInputText"
+                type="text"
+                placeholder="输入标签，按回车添加"
+                class="tag-input-inner"
+                @keydown="handleTagKeydown"
+                @compositionstart="tagComposing = true"
+                @compositionend="onTagCompositionEnd"
+                @input="clearFieldError('tags')"
+              />
+            </div>
             <Transition name="field-error-fade">
               <span v-if="fieldErrors.tags" class="field-error-msg">{{ fieldErrors.tags }}</span>
             </Transition>
@@ -212,7 +230,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getArticleDetail, createArticle, updateArticle, getCategories } from '../api/blog'
@@ -250,7 +268,11 @@ const form = ref({
   cover_image: null as File | null,
 })
 
-const tagInput = ref('')
+const tags = ref<string[]>([])
+const tagInputText = ref('')
+const tagComposing = ref(false)
+const tagInputRef = ref<HTMLInputElement | null>(null)
+const tagWrapRef = ref<HTMLDivElement | null>(null)
 const categories = ref<any[]>([])
 const coverPreview = ref<string | null>(null)
 const showCoverMediaSelector = ref(false)
@@ -344,7 +366,7 @@ const clearCover = () => {
 const FIELD_SCROLL_MAP: Record<string, { getEl: () => HTMLElement | null; switchTab?: boolean }> = {
   title:        { getEl: () => titleInputRef.value },
   content:      { getEl: () => contentErrorRef.value },
-  tags:         { getEl: () => document.querySelector('.editor-right .blog-input') as HTMLElement, switchTab: true },
+  tags:         { getEl: () => tagWrapRef.value, switchTab: true },
   category:     { getEl: () => document.querySelector('.editor-right select') as HTMLElement, switchTab: true },
   article_type: { getEl: () => document.querySelector('.editor-right select') as HTMLElement, switchTab: true },
   status:       { getEl: () => document.querySelectorAll('.editor-right select')[2] as HTMLElement, switchTab: true },
@@ -369,6 +391,45 @@ function scrollToField(fieldName: string) {
 
 function clearFieldError(fieldName: string) {
   delete fieldErrors.value[fieldName]
+}
+
+// ========== 标签输入 ==========
+
+function addTag() {
+  const text = tagInputText.value.trim()
+  if (!text) return
+  // 避免重复
+  if (!tags.value.includes(text)) {
+    tags.value.push(text)
+  }
+  tagInputText.value = ''
+}
+
+function removeTag(idx: number) {
+  tags.value.splice(idx, 1)
+}
+
+function focusTagInput() {
+  tagInputRef.value?.focus()
+}
+
+function handleTagKeydown(e: KeyboardEvent) {
+  // IME 输入中不处理，避免中文输入法确认时误触发
+  if (tagComposing.value) return
+
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    addTag()
+  } else if (e.key === 'Backspace' && !tagInputText.value && tags.value.length > 0) {
+    tags.value.pop()
+  }
+}
+
+function onTagCompositionEnd() {
+  // 等 Vue 更新 v-model 后再清除 IME 标记
+  nextTick(() => {
+    tagComposing.value = false
+  })
 }
 
 // 后端错误字段名 → 前端字段名的映射
@@ -417,8 +478,6 @@ const saveArticle = async (forceStatus?: string) => {
 
   saving.value = true
   try {
-    const tags = tagInput.value.split(/[,，]/).map(t => t.trim()).filter(Boolean)
-
     const jsonData: any = {
       title: form.value.title,
       content: form.value.content,
@@ -429,7 +488,7 @@ const saveArticle = async (forceStatus?: string) => {
       is_featured: form.value.is_featured,
       seo_title: form.value.seo_title,
       seo_description: form.value.seo_description,
-      tags,
+      tags: tags.value,
     }
 
     if (form.value.cover_image) {
@@ -443,7 +502,7 @@ const saveArticle = async (forceStatus?: string) => {
       fd.append('seo_title', jsonData.seo_title || '')
       fd.append('seo_description', jsonData.seo_description || '')
       if (jsonData.category) fd.append('category', String(jsonData.category))
-      tags.forEach((t: string) => fd.append('tags', t))
+      tags.value.forEach((t: string) => fd.append('tags', t))
       fd.append('cover_image', form.value.cover_image)
 
       if (isEdit.value) {
@@ -498,7 +557,7 @@ const autoSaveToLocal = () => {
     is_featured: form.value.is_featured,
     seo_title: form.value.seo_title,
     seo_description: form.value.seo_description,
-    tags: tagInput.value,
+    tags: tags.value,
     savedAt: new Date().toISOString(),
   }
   try {
@@ -523,7 +582,7 @@ const restoreDraft = (): boolean => {
     form.value.is_featured = draft.is_featured || false
     form.value.seo_title = draft.seo_title || ''
     form.value.seo_description = draft.seo_description || ''
-    tagInput.value = draft.tags || ''
+    tags.value = Array.isArray(draft.tags) ? draft.tags : (draft.tags ? String(draft.tags).split(/[,，]/).map((t: string) => t.trim()).filter(Boolean) : [])
     return true
   } catch {
     localStorage.removeItem(getDraftKey())
@@ -573,7 +632,7 @@ onMounted(async () => {
       form.value.seo_title = article.seo_title || ''
       form.value.seo_description = article.seo_description || ''
       if (article.cover_image) coverPreview.value = article.cover_image
-      tagInput.value = article.tags?.map((t: any) => t.name).join(', ') || ''
+      tags.value = article.tags?.map((t: any) => t.name) || []
       // 数据加载完毕，挂载编辑器
       contentReady.value = true
     } catch {
@@ -903,6 +962,82 @@ onUnmounted(() => {
   accent-color: var(--accent);
   margin: 0;
   cursor: pointer;
+}
+
+/* --- 标签输入 --- */
+.tag-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: text;
+  min-height: 40px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tag-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.tag-chip-remove:hover {
+  opacity: 1;
+  background: rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] .tag-chip-remove:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.tag-input-inner {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--text-h);
+  padding: 2px 0;
+  line-height: 1.6;
+}
+
+.tag-input-inner::placeholder {
+  color: var(--text-muted);
 }
 
 .settings-panel .blog-input {
