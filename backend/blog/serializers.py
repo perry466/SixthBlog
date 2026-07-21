@@ -102,8 +102,18 @@ class TagListField(serializers.Field):
             name = name.strip()
             if not name:
                 continue
-            slug = slugify(name)
-            tag, _ = Tag.objects.get_or_create(slug=slug, defaults={'name': name})
+            slug = slugify(name, allow_unicode=True)
+            if not slug:
+                slug = name
+            # 用 name 查找（name 也是 unique），避免旧数据空 slug 导致的冲突
+            tag, created = Tag.objects.get_or_create(
+                name=name,
+                defaults={'slug': slug}
+            )
+            # 修复旧数据中 slug 为空的情况
+            if not created and not tag.slug:
+                tag.slug = slug
+                tag.save(update_fields=['slug'])
             tags.append(tag)
         return tags
 

@@ -28,7 +28,7 @@ class Category(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name='标签名')
-    slug = models.SlugField(max_length=50, unique=True, verbose_name='标签标识')
+    slug = models.CharField(max_length=50, unique=True, verbose_name='标签标识')
 
     class Meta:
         verbose_name = '标签'
