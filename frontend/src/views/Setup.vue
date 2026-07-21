@@ -29,6 +29,28 @@
           ❌ 数据库连接失败
           <p class="error-msg">{{ dbError }}</p>
         </div>
+        <!-- 数据库详情卡片（成功或失败都展示） -->
+        <div v-if="dbInfo && !checking" class="db-info-card">
+          <div class="db-info-title">📦 当前数据库配置</div>
+          <div class="db-info-grid">
+            <div class="db-info-item">
+              <span class="db-info-label">数据库名</span>
+              <span class="db-info-value">{{ dbInfo.name }}</span>
+            </div>
+            <div class="db-info-item">
+              <span class="db-info-label">数据库用户</span>
+              <span class="db-info-value">{{ dbInfo.user }}</span>
+            </div>
+            <div class="db-info-item">
+              <span class="db-info-label">主机地址</span>
+              <span class="db-info-value">{{ dbInfo.host }}</span>
+            </div>
+            <div class="db-info-item">
+              <span class="db-info-label">端口</span>
+              <span class="db-info-value">{{ dbInfo.port }}</span>
+            </div>
+          </div>
+        </div>
         <div class="btn-row">
           <button class="btn-secondary" @click="step = 1">上一步</button>
           <button class="btn-primary" :disabled="!dbOk" @click="step = 3">下一步</button>
@@ -107,6 +129,7 @@ const step = ref(1)
 const checking = ref(true)
 const dbOk = ref(false)
 const dbError = ref('')
+const dbInfo = ref<{ name: string; user: string; host: string; port: string } | null>(null)
 const installing = ref(false)
 const installMessage = ref('')
 
@@ -138,6 +161,9 @@ async function testDb() {
   try {
     const res = await checkDatabase() as any
     dbOk.value = res.ok
+    if (res.database) {
+      dbInfo.value = res.database
+    }
     if (!res.ok) {
       dbError.value = res.error || '未知错误'
     }
@@ -290,6 +316,52 @@ h2 { font-size: 20px; margin-bottom: 12px; color: #fff; }
 .error-msg {
   font-size: 12px;
   margin-top: 8px;
+  word-break: break-all;
+}
+
+/* 数据库信息卡片 */
+.db-info-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.db-info-title {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+.db-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.db-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.db-info-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.db-info-value {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 10px;
+  border-radius: 5px;
   word-break: break-all;
 }
 

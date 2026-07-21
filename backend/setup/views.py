@@ -1,5 +1,6 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import connections
 from django.db.utils import OperationalError
@@ -21,18 +22,37 @@ class SetupStatusView(generics.GenericAPIView):
 
 
 class CheckDatabaseView(generics.GenericAPIView):
-    """测试数据库连接"""
+    """测试数据库连接，并返回当前连接信息"""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        db_config = settings.DATABASES['default']
+        db_info = {
+            'name': db_config['NAME'],
+            'user': db_config['USER'],
+            'host': db_config['HOST'],
+            'port': db_config['PORT'],
+        }
         try:
             db_conn = connections['default']
             db_conn.cursor()
-            return Response({'ok': True, 'message': '数据库连接成功'})
+            return Response({
+                'ok': True,
+                'message': '数据库连接成功',
+                'database': db_info,
+            })
         except OperationalError as e:
-            return Response({'ok': False, 'error': str(e)}, status=status.HTTP_200_OK)
+            return Response({
+                'ok': False,
+                'error': str(e),
+                'database': db_info,
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'ok': False, 'error': f'数据库连接失败: {str(e)}'}, status=status.HTTP_200_OK)
+            return Response({
+                'ok': False,
+                'error': f'数据库连接失败: {str(e)}',
+                'database': db_info,
+            }, status=status.HTTP_200_OK)
 
 
 class InstallView(generics.GenericAPIView):
