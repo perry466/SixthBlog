@@ -30,19 +30,33 @@
         <div class="form-row-2">
           <div class="form-group">
             <label>网站 Logo</label>
-            <input v-model="form.site_logo" type="text" placeholder="图片URL" class="blog-input" />
+            <div class="img-field-row">
+              <input v-model="form.site_logo" type="text" placeholder="图片URL" class="blog-input" style="flex:1" />
+              <button type="button" class="blog-btn blog-btn-ghost" style="padding:0.4rem 0.6rem;font-size:0.75rem;white-space:nowrap" @click="mediaField = 'site_logo'">媒体库</button>
+            </div>
             <span class="form-hint">显示在导航栏左侧</span>
           </div>
           <div class="form-group">
             <label>网站图标 (Favicon)</label>
-            <input v-model="form.site_favicon" type="text" placeholder="图片URL" class="blog-input" />
+            <div class="img-field-row">
+              <input v-model="form.site_favicon" type="text" placeholder="图片URL" class="blog-input" style="flex:1" />
+              <button type="button" class="blog-btn blog-btn-ghost" style="padding:0.4rem 0.6rem;font-size:0.75rem;white-space:nowrap" @click="mediaField = 'site_favicon'">媒体库</button>
+            </div>
             <span class="form-hint">浏览器标签页图标</span>
           </div>
         </div>
         <div class="form-group">
           <label>博客背景图</label>
-          <input v-model="form.blog_background" type="text" placeholder="图片URL，留空使用默认" class="blog-input" />
+          <div class="img-field-row">
+            <input v-model="form.blog_background" type="text" placeholder="图片URL，留空使用默认" class="blog-input" style="flex:1" />
+            <button type="button" class="blog-btn blog-btn-ghost" style="padding:0.4rem 0.6rem;font-size:0.75rem;white-space:nowrap" @click="mediaField = 'blog_background'">媒体库</button>
+          </div>
         </div>
+        <MediaSelector
+          :visible="!!mediaField"
+          @close="mediaField = ''"
+          @selected="handleSiteMediaSelected"
+        />
       </fieldset>
 
       <!-- 首页动画 -->
@@ -139,6 +153,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getSiteConfig } from '../api/blog'
 import api from '../utils/request'
+import MediaSelector from '../components/MediaSelector.vue'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -147,6 +162,7 @@ const saveMsgType = ref<'success' | 'error'>('success')
 const newSocialKey = ref('')
 const newSocialValue = ref('')
 const newWelcomeMsg = ref('')
+const mediaField = ref('')  // 当前正在选择图片的字段名
 
 interface SettingsForm {
   site_title: string
@@ -204,6 +220,14 @@ const addWelcome = () => {
     form.welcome_messages.push(msg)
     newWelcomeMsg.value = ''
   }
+}
+
+// 从媒体库选择图片填入对应字段
+const handleSiteMediaSelected = (url: string) => {
+  if (mediaField.value && mediaField.value in form) {
+    ;(form as any)[mediaField.value] = url
+  }
+  mediaField.value = ''
 }
 
 const handleSave = async () => {
@@ -286,6 +310,7 @@ onMounted(async () => {
 .form-row-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; }
 
 .form-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: block; }
+.img-field-row { display: flex; gap: 6px; align-items: center; }
 
 .blog-input {
   width: 100%; padding: 0.5rem 0.7rem;

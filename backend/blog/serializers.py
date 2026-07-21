@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils.text import slugify
-from .models import Category, Tag, Article, Comment, SiteConfig, MenuItem, Guestbook
+from .models import Category, Tag, Article, Comment, SiteConfig, MenuItem, Guestbook, Media
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -210,3 +210,19 @@ class GuestbookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Guestbook
         fields = ['id', 'nickname', 'email', 'content', 'is_approved', 'created_at']
+
+
+class MediaSerializer(serializers.ModelSerializer):
+    """媒体列表/详情序列化（file 返回完整 URL）"""
+    file_url = serializers.SerializerMethodField()
+    file = serializers.ImageField(write_only=True, required=False)
+
+    class Meta:
+        model = Media
+        fields = ['id', 'file', 'file_url', 'filename', 'file_size',
+                  'mime_type', 'uploaded_by', 'created_at']
+        read_only_fields = ['filename', 'file_size', 'mime_type',
+                            'uploaded_by', 'created_at']
+
+    def get_file_url(self, obj):
+        return obj.file_url

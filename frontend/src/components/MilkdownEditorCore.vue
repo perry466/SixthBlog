@@ -26,20 +26,18 @@
       <div class="toolbar-divider"></div>
       <div class="toolbar-group">
         <button @click="handleLinkClick" title="插入链接">🔗</button>
-        <button @click="triggerImageUpload" title="上传图片">🖼</button>
+        <button @click="showMediaSelector = true" title="插入图片">🖼</button>
       </div>
     </div>
 
     <!-- Milkdown 编辑器本体 -->
     <Milkdown />
 
-    <!-- 隐藏的图片上传 input -->
-    <input
-      ref="imageInputRef"
-      type="file"
-      accept="image/*"
-      hidden
-      @change="handleToolbarImageUpload"
+    <!-- 媒体选择器弹窗 -->
+    <MediaSelector
+      :visible="showMediaSelector"
+      @close="showMediaSelector = false"
+      @selected="handleMediaSelected"
     />
   </div>
 </template>
@@ -59,7 +57,7 @@ import { prism } from '@milkdown/plugin-prism'
 import { nord } from '@milkdown/theme-nord'
 import '@milkdown/theme-nord/style.css'
 import { replaceAll } from '@milkdown/utils'
-import { uploadImage } from '../api/user'
+import MediaSelector from './MediaSelector.vue'
 
 const props = defineProps<{ modelValue: string }>()
 
@@ -69,7 +67,7 @@ const emit = defineEmits<{
   'image-uploaded': [url: string]
 }>()
 
-const imageInputRef = ref<HTMLInputElement | null>(null)
+const showMediaSelector = ref(false)
 
 // ===== 创建 Milkdown 编辑器 =====
 const { loading, get: getEditor } = useEditor((container: HTMLDivElement) => {
@@ -131,43 +129,27 @@ function handleLinkClick() {
   })
 }
 
-// ===== 图片上传 =====
-function triggerImageUpload() {
-  imageInputRef.value?.click()
-}
-
-async function handleToolbarImageUpload(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-
+// ===== 图片插入（媒体选择器）=====
+function handleMediaSelected(url: string) {
   emit('image-uploading')
-  try {
-    const res = (await uploadImage(file)) as any
-    emit('image-uploaded', res.url)
+  emit('image-uploaded', url)
 
-    const editor = getEditor()
-    if (!editor) return
-    editor.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      const state = ctx.get(editorStateCtx)
-      if (!view || !state) return
+  const editor = getEditor()
+  if (!editor) return
+  editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const state = ctx.get(editorStateCtx)
+    if (!view || !state) return
 
-      const schema = state.schema
-      const imageNode = schema.nodes.image.create({
-        src: res.url,
-        alt: file.name,
-        title: file.name,
-      })
-      const tr = state.tr.replaceSelectionWith(imageNode)
-      view.dispatch(tr)
+    const schema = state.schema
+    const imageNode = schema.nodes.image.create({
+      src: url,
+      alt: '',
+      title: '',
     })
-  } catch {
-    // 父组件处理错误
-  }
-
-  if (imageInputRef.value) {
-    imageInputRef.value.value = ''
-  }
+    const tr = state.tr.replaceSelectionWith(imageNode)
+    view.dispatch(tr)
+  })
 }
 
 // ===== 外部内容同步（恢复草稿 / 加载已有文章） =====

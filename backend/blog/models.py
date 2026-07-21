@@ -182,6 +182,35 @@ class MenuItem(models.Model):
         return self.name
 
 
+class Media(models.Model):
+    """媒体库：记录所有上传的图片文件"""
+    file = models.ImageField(upload_to='media/%Y/%m/', verbose_name='文件')
+    filename = models.CharField(max_length=255, verbose_name='原始文件名')
+    file_size = models.IntegerField(default=0, verbose_name='文件大小(字节)')
+    mime_type = models.CharField(max_length=50, default='', verbose_name='MIME类型')
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name='uploads',
+        verbose_name='上传者'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        verbose_name = '媒体文件'
+        verbose_name_plural = '媒体文件'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.filename
+
+    @property
+    def file_url(self):
+        """返回文件完整访问 URL"""
+        try:
+            return self.file.url
+        except Exception:
+            return ''
+
+
 class Guestbook(models.Model):
     nickname = models.CharField(max_length=50, verbose_name='昵称')
     email = models.EmailField(verbose_name='邮箱')

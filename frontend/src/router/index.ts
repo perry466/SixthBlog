@@ -116,6 +116,11 @@ const router = createRouter({
                     component: () => import("../views/MenuManage.vue"),
                 },
                 {
+                    path: "media",
+                    name: "AdminMedia",
+                    component: () => import("../views/admin/MediaManage.vue"),
+                },
+                {
                     path: "settings",
                     name: "AdminSettings",
                     component: () => import("../views/SiteSettings.vue"),

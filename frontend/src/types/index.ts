@@ -106,6 +106,17 @@ export interface Guestbook {
   created_at: string
 }
 
+// 媒体文件
+export interface MediaItem {
+  id: number
+  file?: string         // 上传时用（write only）
+  file_url: string      // 完整访问 URL（read only）
+  filename: string
+  file_size: number
+  mime_type: string
+  created_at: string
+}
+
 // 用户
 export interface User {
   id: number

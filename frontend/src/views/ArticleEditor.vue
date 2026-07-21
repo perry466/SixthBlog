@@ -133,9 +133,20 @@
                   <span>点击上传封面</span>
                 </div>
               </div>
-              <button v-if="coverPreview" class="blog-btn blog-btn-ghost" style="width:100%;margin-top:8px" @click="clearCover">移除封面</button>
+              <div class="cover-actions">
+                <button type="button" class="blog-btn blog-btn-ghost" style="font-size:0.78rem" @click="showCoverMediaSelector = true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  从媒体库选择
+                </button>
+                <button v-if="coverPreview" type="button" class="blog-btn blog-btn-ghost" style="font-size:0.78rem;color:#dc3545;border-color:#fecaca" @click="clearCover">移除封面</button>
+              </div>
             </div>
             <input ref="coverInput" type="file" accept="image/*" hidden @change="handleCoverUpload" />
+            <MediaSelector
+              :visible="showCoverMediaSelector"
+              @close="showCoverMediaSelector = false"
+              @selected="handleCoverMediaSelected"
+            />
           </div>
 
           <div class="setting-group">
@@ -204,6 +215,7 @@ import { useUserStore } from '../stores/user'
 import { getArticleDetail, createArticle, updateArticle, getCategories } from '../api/blog'
 import { marked } from 'marked'
 import MilkdownEditor from '../components/MilkdownEditor.vue'
+import MediaSelector from '../components/MediaSelector.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -235,6 +247,7 @@ const form = ref({
 const tagInput = ref('')
 const categories = ref<any[]>([])
 const coverPreview = ref<string | null>(null)
+const showCoverMediaSelector = ref(false)
 const saving = ref(false)
 const toast = ref('')
 const toastType = ref('success')
@@ -292,6 +305,21 @@ const handleCoverUpload = (e: Event) => {
     }
     form.value.cover_image = file
     coverPreview.value = URL.createObjectURL(file)
+  }
+}
+
+// 从媒体库选择封面
+const handleCoverMediaSelected = async (url: string) => {
+  try {
+    const filename = url.split('/').pop() || 'cover.jpg'
+    const response = await fetch(url)
+    const blob = await response.blob()
+    const file = new File([blob], filename, { type: blob.type || 'image/jpeg' })
+    form.value.cover_image = file
+    coverPreview.value = url
+  } catch {
+    // 如果 fetch 失败，至少设置预览
+    coverPreview.value = url
   }
 }
 

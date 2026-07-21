@@ -160,3 +160,24 @@ export const updateMenuItem = (id: number, data: any) => {
 export const deleteMenuItem = (id: number) => {
   return api.delete(`/blog/admin/menu-items/${id}/`)
 }
+
+// ========== 媒体库 API ==========
+
+// 获取媒体列表
+export const getMediaList = (params?: any) => {
+  return api.get('/blog/media/', { params })
+}
+
+// 上传媒体文件
+export const uploadMedia = (file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post('/blog/media/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+// 删除媒体文件
+export const deleteMedia = (id: number) => {
+  return api.delete(`/blog/media/${id}/`)
+}

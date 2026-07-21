@@ -5,12 +5,13 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
 from users.models import UserProfile
-from .models import Category, Tag, Article, Comment, SiteConfig, MenuItem, Guestbook
+from .models import Category, Tag, Article, Comment, SiteConfig, MenuItem, Guestbook, Media
 from .serializers import (
     CategorySerializer, TagSerializer,
     ArticleListSerializer, ArticleDetailSerializer, ArticleCreateUpdateSerializer,
     CommentSerializer, CommentCreateSerializer,
     SiteConfigSerializer, MenuItemSerializer, MenuItemManageSerializer, GuestbookSerializer,
+    MediaSerializer,
 )
 
 
@@ -406,10 +407,47 @@ class AboutView(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+class MediaPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class MediaViewSet(viewsets.ModelViewSet):
+    """媒体库 CRUD"""
+    serializer_class = MediaSerializer
+    permission_classes = [IsAdminOrEditorOrAuthor]
+    pagination_class = MediaPagination
+    search_fields = ['filename']
+
+    def get_queryset(self):
+        return Media.objects.all()
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [IsAdminOrEditorOrAuthor()]
+        return [IsAdminOrEditorOrAuthor()]
+
+    def perform_create(self, serializer):
+        """上传文件时自动填充元数据"""
+        image = self.request.FILES.get('file')
+        serializer.save(
+            filename=image.name if image else '',
+            file_size=image.size if image else 0,
+            mime_type=image.content_type if image else '',
+            uploaded_by=self.request.user,
+        )
+
+    def perform_destroy(self, instance):
+        """删除数据库记录的同时删除物理文件"""
+        instance.file.delete(save=False)
+        instance.delete()
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminOrEditorOrAuthor])
 def upload_image(request):
-    """图片上传接口"""
+    """图片上传接口（兼容旧端点，同时创建 Media 记录）"""
     image = request.FILES.get('image')
     if not image:
         return Response({'error': '请上传图片'}, status=400)
@@ -422,7 +460,19 @@ def upload_image(request):
     # 保存到 articles/images/ 目录
     from django.core.files.storage import default_storage
     from django.conf import settings
-    import os
     filename = default_storage.save(f'articles/images/{image.name}', image)
     url = f'{settings.MEDIA_URL}{filename}'
+
+    # 同时创建 Media 记录
+    try:
+        Media.objects.create(
+            file=filename,
+            filename=image.name,
+            file_size=image.size,
+            mime_type=image.content_type,
+            uploaded_by=request.user,
+        )
+    except Exception:
+        pass  # 媒体库记录失败不影响上传功能
+
     return Response({'url': url, 'filename': image.name})
