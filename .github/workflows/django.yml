@@ -28,5 +28,6 @@ jobs:
 
     - name: Run Tests
       run: |
+        working-directory: ./backend/manage.py
         python manage.py test
-        working-directory: ./backend
+        
